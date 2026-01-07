@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import DashboardLayout from './DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, BookOpen, FileText, Save, PenLine, FolderOpen } from 'lucide-react';
+import { Users, BookOpen, FileText, Save, PenLine, FolderOpen, Download, Printer } from 'lucide-react';
 import { Teacher } from '@/data/teachers';
 import { allStudents } from '@/data/students';
 import { currentSemester } from '@/data/grades';
 import { toast } from 'sonner';
+import { generatePDF, printElement } from '@/lib/pdf-utils';
 
 type ActiveMenu = 'overview' | 'input-nilai' | 'students' | 'materials';
 
@@ -21,6 +22,8 @@ const TeacherDashboard = () => {
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>('overview');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
   const [grades, setGrades] = useState<Record<string, { pengetahuan: string; keterampilan: string }>>({});
+  const gradesTableRef = useRef<HTMLDivElement>(null);
+  const studentTableRef = useRef<HTMLDivElement>(null);
 
   const kelasOptions = teacher?.kelasAjar || [];
   const studentsInClass = allStudents.filter(s => s.kelas === selectedKelas);
@@ -129,23 +132,52 @@ const TeacherDashboard = () => {
               <h2 className="text-2xl font-bold">Input Nilai Semester {currentSemester}</h2>
               <p className="text-muted-foreground">Pilih kelas untuk menginput nilai</p>
             </div>
-            <Select value={selectedKelas} onValueChange={setSelectedKelas}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Pilih Kelas" />
-              </SelectTrigger>
-              <SelectContent>
-                {kelasOptions.map((kelas) => (
-                  <SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 items-center">
+              <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Pilih Kelas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kelasOptions.map((kelas) => (
+                    <SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedKelas && (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      if (gradesTableRef.current) {
+                        printElement(gradesTableRef.current);
+                      }
+                    }}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Cetak
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (gradesTableRef.current) {
+                        generatePDF(gradesTableRef.current, `Nilai_${selectedKelas}_${new Date().toLocaleDateString()}.pdf`);
+                        toast.success('PDF berhasil diunduh!');
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {selectedKelas && studentsInClass.length > 0 && (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
+            <div ref={gradesTableRef}>
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">No</TableHead>
@@ -205,6 +237,7 @@ const TeacherDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+            </div>
           )}
 
           {selectedKelas && studentsInClass.length === 0 && (
@@ -219,20 +252,52 @@ const TeacherDashboard = () => {
 
       {activeMenu === 'students' && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Data Siswa</h2>
-          <Select value={selectedKelas} onValueChange={setSelectedKelas}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Pilih Kelas" />
-            </SelectTrigger>
-            <SelectContent>
-              {kelasOptions.map((kelas) => (
-                <SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">Data Siswa</h2>
+            </div>
+            <div className="flex gap-2">
+              <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Pilih Kelas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kelasOptions.map((kelas) => (
+                    <SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedKelas && (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      if (studentTableRef.current) {
+                        printElement(studentTableRef.current);
+                      }
+                    }}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Cetak
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (studentTableRef.current) {
+                        generatePDF(studentTableRef.current, `Data_Siswa_${selectedKelas}_${new Date().toLocaleDateString()}.pdf`);
+                        toast.success('PDF berhasil diunduh!');
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
 
           {selectedKelas && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div ref={studentTableRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {studentsInClass.map((student) => (
                 <Card key={student.id}>
                   <CardContent className="p-4">

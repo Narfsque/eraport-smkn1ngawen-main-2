@@ -7,6 +7,7 @@ export interface Student {
   nama: string;
   jurusan: string;
   kelas: string;
+  subkelas?: string;
   tahunMasuk: number;
   email: string;
   password: string;

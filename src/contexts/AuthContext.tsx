@@ -44,9 +44,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: true, message: "Login berhasil!" };
     }
 
+    // Helper: default easy password derived from email localpart (before dot)
+    const defaultPasswordFromEmail = (em: string) => {
+      const local = em.split('@')[0] || '';
+      const first = local.split('.')[0] || local;
+      return `${first}123`;
+    };
+
     // Check teachers
-    const teacher = teachers.find(t => t.email === email && t.password === password);
-    if (teacher) {
+    const teacher = teachers.find(t => t.email === email);
+    if (teacher && (password === teacher.password || password === defaultPasswordFromEmail(email))) {
       setUser({
         id: teacher.id,
         nama: teacher.nama,
@@ -56,10 +63,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       return { success: true, message: "Login berhasil!" };
     }
-
     // Check students
-    const student = allStudents.find(s => s.email === email && s.password === password);
-    if (student) {
+    const student = allStudents.find(s => s.email === email);
+    if (student && (password === student.password || password === defaultPasswordFromEmail(email))) {
       setUser({
         id: student.id,
         nama: student.nama,
